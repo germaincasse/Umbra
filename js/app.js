@@ -19,7 +19,7 @@ const state = {
   y0: 2025, y1: 2050,
   filters: { T: true, A: true, H: true, P: false },
   color: 'type',
-  view: 'flat',
+  view: 'globe',
   tab: 'list',
   sel: null,
   probe: null,
