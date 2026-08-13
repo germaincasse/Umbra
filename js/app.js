@@ -1001,4 +1001,5 @@ document.querySelectorAll('#langSeg button').forEach(b =>
 
 /* ---------------- boot ---------------- */
 window.addEventListener('resize', () => { resize(); syncSlider(); });
+document.querySelectorAll('#viewBtns button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === state.view));
 setLang(lang); resize(); cam.zoom = fitZoom(); draw(); requestRange(); setTab('list');
