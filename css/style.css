@@ -149,12 +149,15 @@ button{cursor:pointer;background:none;border:none;padding:0}
 .tabs button[aria-pressed=true]{color:var(--txt);border-bottom-color:var(--accent)}
 
 @media (max-width:880px){
-  #app{grid-template-columns:1fr;grid-template-rows:minmax(230px,42vh) auto 1fr}
+  html,body{height:auto}
+  body{overflow-y:auto;overflow-x:hidden}
+  #app{grid-template-columns:1fr;grid-template-rows:minmax(230px,42vh) auto auto;height:auto;min-height:100vh}
   #rail{grid-row:3;border-right:none;border-top:1px solid var(--line)}
   #stage{grid-row:1}
   #ribbonWrap{grid-row:2}
   #ribbon{height:44px}
   .brand h1{font-size:24px}
+  .sect.scroll{flex:none;overflow-y:visible}
   #legend{display:none}
   #hint{top:auto;bottom:10px;max-width:calc(100% - 24px);font-size:11px;padding:5px 12px}
 }
