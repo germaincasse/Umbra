@@ -784,20 +784,25 @@ function nearestPath(ll) {
   const tol = state.view === 'flat' ? 12 / kFlat() : 900 / globeR();
   return bd < tol ? best : null;
 }
+function showTip(e, px, py) {
+  const tip = $('#tip');
+  tip.style.display = 'block';
+  tip.innerHTML = `<b style="color:${eclipseColor(e)}">${TYPES[e.type].label}</b><br>
+      <span class="t">${fmtDate(e.jd)}</span><br>
+      <span class="t">${fmtDur(e.dur)} · ${e.width.toFixed(0)} km</span>`;
+  tip.style.left = Math.max(4, Math.min(W - 240, px + 14)) + 'px';
+  tip.style.top = Math.max(4, py - 50) + 'px';
+}
 function hoverTest(ll, px, py) {
   const tip = $('#tip');
   if (!ll) { tip.style.display = 'none'; state.hover = null; return; }
   const best = nearestPath(ll);
   if (best) {
-    tip.style.display = 'block';
-    tip.innerHTML = `<b style="color:${eclipseColor(best)}">${TYPES[best.type].label}</b><br>
-      <span class="t">${fmtDate(best.jd)}</span><br>
-      <span class="t">${fmtDur(best.dur)} · ${best.width.toFixed(0)} km</span>`;
-    tip.style.left = Math.min(W - 240, px + 14) + 'px';
-    tip.style.top = Math.max(4, py - 50) + 'px';
+    showTip(best, px, py);
     state.hover = best;
   } else { tip.style.display = 'none'; state.hover = null; }
 }
+let tipTimer = null;
 cv.addEventListener('pointerup', ev => {
   const wasDrag = drag && drag.moved > 6;
   drag = null;
@@ -806,8 +811,14 @@ cv.addEventListener('pointerup', ev => {
   const ll = unproj(ev.clientX - r.left, ev.clientY - r.top);
   if (!ll) return;
   const hit = nearestPath(ll);
-  if (hit) select(hit, { detail: true });
-  else probeAt(ll[0], ll[1]);
+  if (hit) {
+    select(hit, { detail: true });
+    if (ev.pointerType !== 'mouse') {     // no hover on touch: show the tooltip on tap
+      showTip(hit, ev.clientX - r.left, ev.clientY - r.top);
+      clearTimeout(tipTimer);
+      tipTimer = setTimeout(() => { $('#tip').style.display = 'none'; }, 4000);
+    }
+  } else probeAt(ll[0], ll[1]);
 });
 cv.addEventListener('pointerleave', () => { $('#tip').style.display = 'none'; $('#coords').textContent = ''; });
 cv.addEventListener('wheel', ev => {
