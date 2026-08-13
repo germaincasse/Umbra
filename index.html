@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Umbra — atlas des éclipses solaires</title>
+<title>Umbra — solar eclipse atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -13,45 +13,45 @@
 <div id="app">
   <aside id="rail">
     <div class="brand">
-      <div class="seg" id="langSeg" role="group" aria-label="Langue / Language">
-        <button data-l="fr" aria-pressed="true">FR</button>
-        <button data-l="en" aria-pressed="false">EN</button>
+      <div class="seg" id="langSeg" role="group" aria-label="Language / Langue">
+        <button data-l="fr" aria-pressed="false">FR</button>
+        <button data-l="en" aria-pressed="true">EN</button>
       </div>
       <h1>Umbra<em>.</em></h1>
-      <p data-i18n="tagline">Atlas calculé des éclipses solaires. Trajets d'ombre, circonstances locales et éléments de Bessel, générés dans le navigateur.</p>
+      <p data-i18n="tagline">A computed atlas of solar eclipses. Shadow paths, local circumstances and Besselian elements, generated in the browser.</p>
     </div>
 
     <div class="sect">
-      <p class="eyebrow"><span data-i18n="timeWindow">Fenêtre temporelle</span> <b id="spanInfo"></b></p>
+      <p class="eyebrow"><span data-i18n="timeWindow">Time window</span> <b id="spanInfo"></b></p>
       <div class="yearRow">
-        <input class="yearBox" id="y0" inputmode="numeric" data-i18n-aria="y0" aria-label="Année de début">
+        <input class="yearBox" id="y0" inputmode="numeric" data-i18n-aria="y0" aria-label="Start year">
         <span>—</span>
-        <input class="yearBox" id="y1" inputmode="numeric" data-i18n-aria="y1" aria-label="Année de fin">
+        <input class="yearBox" id="y1" inputmode="numeric" data-i18n-aria="y1" aria-label="End year">
         <span class="span" id="countInfo">—</span>
       </div>
       <div class="slider" id="slider">
         <div class="track"></div><div class="fill" id="sfill"></div>
-        <div class="knob" id="k0" tabindex="0" role="slider" data-i18n-aria="y0" aria-label="Année de début"></div>
-        <div class="knob" id="k1" tabindex="0" role="slider" data-i18n-aria="y1" aria-label="Année de fin"></div>
+        <div class="knob" id="k0" tabindex="0" role="slider" data-i18n-aria="y0" aria-label="Start year"></div>
+        <div class="knob" id="k1" tabindex="0" role="slider" data-i18n-aria="y1" aria-label="End year"></div>
       </div>
       <div class="ticks" id="sticks"></div>
       <div class="presets" id="presets"></div>
     </div>
 
     <div class="sect">
-      <p class="eyebrow" data-i18n="display">Affichage</p>
+      <p class="eyebrow" data-i18n="display">Display</p>
       <div class="filters" id="filters"></div>
       <div style="height:11px"></div>
       <div class="seg" id="colorSeg">
-        <button data-c="type" aria-pressed="true" data-i18n="colorByType">Couleur par type</button>
-        <button data-c="date" aria-pressed="false" data-i18n="colorByDate">par date</button>
+        <button data-c="type" aria-pressed="true" data-i18n="colorByType">Color by type</button>
+        <button data-c="date" aria-pressed="false" data-i18n="colorByDate">by date</button>
       </div>
     </div>
 
     <div class="tabs">
-      <button data-tab="list" aria-pressed="true" data-i18n="tabList">Éclipses</button>
-      <button data-tab="detail" aria-pressed="false" data-i18n="tabDetail">Fiche</button>
-      <button data-tab="probe" aria-pressed="false" data-i18n="tabProbe">Lieu</button>
+      <button data-tab="list" aria-pressed="true" data-i18n="tabList">Eclipses</button>
+      <button data-tab="detail" aria-pressed="false" data-i18n="tabDetail">Details</button>
+      <button data-tab="probe" aria-pressed="false" data-i18n="tabProbe">Location</button>
     </div>
     <div class="sect scroll" id="pane"></div>
   </aside>
@@ -59,31 +59,31 @@
   <div id="stage">
     <canvas id="cv"></canvas>
     <div id="viewBtns">
-      <button data-v="flat" aria-pressed="true" data-i18n="viewFlat">Planisphère</button>
+      <button data-v="flat" aria-pressed="true" data-i18n="viewFlat">World map</button>
       <button data-v="globe" aria-pressed="false" data-i18n="viewGlobe">Globe</button>
     </div>
     <div id="zoomBtns">
-      <button id="zin" data-i18n-title="zoomIn" title="Zoom avant">+</button>
-      <button id="zout" data-i18n-title="zoomOut" title="Zoom arrière">−</button>
-      <button id="zreset" data-i18n-title="zoomReset" title="Réinitialiser la vue">⌂</button>
+      <button id="zin" data-i18n-title="zoomIn" title="Zoom in">+</button>
+      <button id="zout" data-i18n-title="zoomOut" title="Zoom out">−</button>
+      <button id="zreset" data-i18n-title="zoomReset" title="Reset view">⌂</button>
     </div>
     <div id="legend"></div>
     <div class="hud" id="coords"></div>
     <div class="hud" id="scaleNote"></div>
     <div id="tip"></div>
-    <div id="hint" data-i18n="hint">Cliquez une bande pour ouvrir sa fiche, ailleurs pour sonder un lieu</div>
+    <div id="hint" data-i18n="hint">Click a shadow path to open its details, anywhere else to probe a location</div>
     <div id="player">
-      <button id="play" data-i18n-aria="play" aria-label="Lecture">▶</button>
+      <button id="play" data-i18n-aria="play" aria-label="Play">▶</button>
       <div>
-        <div class="lab" data-i18n="ut">TU</div>
+        <div class="lab" data-i18n="ut">UT</div>
         <div class="clock" id="clock">—</div>
       </div>
-      <input type="range" id="scrub" min="0" max="1000" value="500" data-i18n-aria="scrub" aria-label="Instant de l'éclipse">
+      <input type="range" id="scrub" min="0" max="1000" value="500" data-i18n-aria="scrub" aria-label="Eclipse time">
       <div style="min-width:96px">
-        <div class="lab" data-i18n="underUmbra">SOUS L'OMBRE</div>
+        <div class="lab" data-i18n="underUmbra">UNDER THE UMBRA</div>
         <div class="clock" id="umbraInfo" style="font-size:11px">—</div>
       </div>
-      <button class="miniBtn" id="closePlayer" data-i18n-aria="closeAnim" aria-label="Fermer l'animation">✕</button>
+      <button class="miniBtn" id="closePlayer" data-i18n-aria="closeAnim" aria-label="Close the animation">✕</button>
     </div>
     <div id="progress"></div>
   </div>

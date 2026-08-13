@@ -5,8 +5,7 @@ const $ = s => document.querySelector(s);
 const TAU = Math.PI * 2, D2R = Math.PI / 180;
 let lang = null;
 try { lang = localStorage.getItem('umbra-lang'); } catch (e) { }
-if (!lang) lang = ((navigator.language || '').toLowerCase().startsWith('fr')) ? 'fr' : 'en';
-if (!I18N[lang]) lang = 'fr';
+if (!lang || !I18N[lang]) lang = 'en';
 let L = I18N[lang];
 const TYPES = {
   T: { label: L.types.T, color: '#FFE4A0' },
