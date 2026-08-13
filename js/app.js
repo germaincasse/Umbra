@@ -743,27 +743,60 @@ function probeAt(lon, lat) {
 
 /* ---------------- interactions ---------------- */
 let drag = null;
+const pointers = new Map();       // active pointers, for two-finger pinch
+let pinch = null;                 // {dist, mx, my} while two fingers are down
 function hideHint() { const h = $('#hint'); if (h && !h.classList.contains('gone')) h.classList.add('gone'); }
 setTimeout(hideHint, 14000);
+function panBy(dx, dy) {
+  if (state.view === 'flat') {
+    const k = kFlat(); cam.lon0 -= dx / k; cam.lat0 += dy / k;
+    cam.lat0 = Math.max(-88, Math.min(88, cam.lat0));
+    cam.lon0 = ((cam.lon0 + 180) % 360 + 360) % 360 - 180;
+  } else {
+    const s = 0.35 / cam.gzoom;
+    cam.glon -= dx * s; cam.glat = Math.max(-89, Math.min(89, cam.glat + dy * s));
+    cam.glon = ((cam.glon + 180) % 360 + 360) % 360 - 180;
+  }
+}
+function zoomAt(px, py, f) {
+  if (state.view === 'flat') {
+    const before = unproj(px, py);
+    cam.zoom = Math.max(0.7, Math.min(60, cam.zoom * f));
+    const after = unproj(px, py);
+    if (before && after) {
+      cam.lon0 += before[0] - after[0]; cam.lat0 += before[1] - after[1];
+      cam.lat0 = Math.max(-88, Math.min(88, cam.lat0));
+      cam.lon0 = ((cam.lon0 + 180) % 360 + 360) % 360 - 180;
+    }
+  } else cam.gzoom = Math.max(0.75, Math.min(14, cam.gzoom * f));
+}
 cv.addEventListener('pointerdown', ev => {
   hideHint(); $('#tip').style.display = 'none';
-  cv.setPointerCapture(ev.pointerId);
-  drag = { x: ev.clientX, y: ev.clientY, moved: 0, sx: ev.clientX, sy: ev.clientY };
+  try { cv.setPointerCapture(ev.pointerId); } catch (err) { }
+  pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  if (pointers.size === 2) {        // second finger: start pinching, cancel the tap
+    const [a, b] = [...pointers.values()];
+    pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    drag = null;
+  } else if (pointers.size === 1) {
+    drag = { x: ev.clientX, y: ev.clientY, moved: 0, sx: ev.clientX, sy: ev.clientY };
+  }
 });
 cv.addEventListener('pointermove', ev => {
   const r = cv.getBoundingClientRect(), px = ev.clientX - r.left, py = ev.clientY - r.top;
+  if (pointers.has(ev.pointerId)) pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  if (pinch && pointers.size >= 2) {
+    const [a, b] = [...pointers.values()];
+    const dist = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    if (pinch.dist > 8 && dist > 8) zoomAt(mx - r.left, my - r.top, dist / pinch.dist);
+    panBy(mx - pinch.mx, my - pinch.my);
+    pinch = { dist, mx, my };
+    draw(); return;
+  }
   if (drag) {
     const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
     drag.moved += Math.abs(dx) + Math.abs(dy);
-    if (state.view === 'flat') {
-      const k = kFlat(); cam.lon0 -= dx / k; cam.lat0 += dy / k;
-      cam.lat0 = Math.max(-88, Math.min(88, cam.lat0));
-      cam.lon0 = ((cam.lon0 + 180) % 360 + 360) % 360 - 180;
-    } else {
-      const s = 0.35 / cam.gzoom;
-      cam.glon -= dx * s; cam.glat = Math.max(-89, Math.min(89, cam.glat + dy * s));
-      cam.glon = ((cam.glon + 180) % 360 + 360) % 360 - 180;
-    }
+    panBy(dx, dy);
     drag.x = ev.clientX; drag.y = ev.clientY; draw(); return;
   }
   const ll = unproj(px, py);
@@ -804,6 +837,15 @@ function hoverTest(ll, px, py) {
 }
 let tipTimer = null;
 cv.addEventListener('pointerup', ev => {
+  pointers.delete(ev.pointerId);
+  if (pinch) {                      // pinch ends: no tap; the last finger resumes panning
+    if (pointers.size === 1) {
+      const p = [...pointers.values()][0];
+      drag = { x: p.x, y: p.y, moved: 999, sx: p.x, sy: p.y };
+    }
+    if (pointers.size < 2) pinch = null;
+    return;
+  }
   const wasDrag = drag && drag.moved > 6;
   drag = null;
   if (wasDrag) return;
@@ -820,20 +862,16 @@ cv.addEventListener('pointerup', ev => {
     }
   } else probeAt(ll[0], ll[1]);
 });
+cv.addEventListener('pointercancel', ev => {
+  pointers.delete(ev.pointerId);
+  if (pointers.size < 2) pinch = null;
+  drag = null;
+});
 cv.addEventListener('pointerleave', () => { $('#tip').style.display = 'none'; $('#coords').textContent = ''; });
 cv.addEventListener('wheel', ev => {
   ev.preventDefault();
-  const f = Math.exp(-ev.deltaY * 0.0016);
-  if (state.view === 'flat') {
-    const r = cv.getBoundingClientRect();
-    const before = unproj(ev.clientX - r.left, ev.clientY - r.top);
-    cam.zoom = Math.max(0.7, Math.min(60, cam.zoom * f));
-    const after = unproj(ev.clientX - r.left, ev.clientY - r.top);
-    if (before && after) {
-      cam.lon0 += before[0] - after[0]; cam.lat0 += before[1] - after[1];
-      cam.lat0 = Math.max(-88, Math.min(88, cam.lat0));
-    }
-  } else cam.gzoom = Math.max(0.75, Math.min(14, cam.gzoom * f));
+  const r = cv.getBoundingClientRect();
+  zoomAt(ev.clientX - r.left, ev.clientY - r.top, Math.exp(-ev.deltaY * 0.0016));
   draw();
 }, { passive: false });
 
