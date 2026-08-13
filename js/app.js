@@ -133,6 +133,8 @@ function resize() {
   draw(); drawRibbon();
 }
 function kFlat() { return (W / 360) * cam.zoom; }
+/* zoom that makes the full map fill the stage height (never below world width) */
+function fitZoom() { return Math.max(1, Math.min(8, 2 * H / W)); }
 function globeR() { return Math.min(W, H) * 0.46 * cam.gzoom; }
 
 function proj(lon, lat) {         // -> [x, y, visible]
@@ -826,7 +828,7 @@ cv.addEventListener('wheel', ev => {
 
 $('#zin').onclick = () => { if (state.view === 'flat') cam.zoom = Math.min(60, cam.zoom * 1.5); else cam.gzoom = Math.min(14, cam.gzoom * 1.4); draw(); };
 $('#zout').onclick = () => { if (state.view === 'flat') cam.zoom = Math.max(0.7, cam.zoom / 1.5); else cam.gzoom = Math.max(0.75, cam.gzoom / 1.4); draw(); };
-$('#zreset').onclick = () => { cam.zoom = 1; cam.lon0 = 0; cam.lat0 = 0; cam.gzoom = 1; draw(); };
+$('#zreset').onclick = () => { cam.zoom = fitZoom(); cam.lon0 = 0; cam.lat0 = 0; cam.gzoom = 1; draw(); };
 document.querySelectorAll('#viewBtns button').forEach(b => b.onclick = () => {
   if (state.view === b.dataset.v) return;
   state.view = b.dataset.v;
@@ -999,4 +1001,4 @@ document.querySelectorAll('#langSeg button').forEach(b =>
 
 /* ---------------- boot ---------------- */
 window.addEventListener('resize', () => { resize(); syncSlider(); });
-setLang(lang); resize(); requestRange(); setTab('list');
+setLang(lang); resize(); cam.zoom = fitZoom(); draw(); requestRange(); setTab('list');

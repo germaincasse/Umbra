@@ -163,4 +163,7 @@ button{cursor:pointer;background:none;border:none;padding:0}
 /* ---------- language switch ---------- */
 .brand{position:relative}
 #langSeg{position:absolute;top:16px;right:16px}
-#langSeg button{flex:none;padding:3px 8px;font-size:10px;font-family:var(--mono);letter-spacing:.06em}
+#langSeg button{flex:none;padding:4px 6px;line-height:0;opacity:.4}
+#langSeg button:hover{opacity:.75}
+#langSeg button[aria-pressed=true]{opacity:1}
+#langSeg svg{width:20px;height:10px;border-radius:1px;display:block}
