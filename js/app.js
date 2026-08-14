@@ -168,7 +168,8 @@ function lonOffsets() {
   if (state.view !== 'flat') return [0];
   const k = kFlat(), half = (W / 2) / k;
   const lo = cam.lon0 - half, hi = cam.lon0 + half, out = [];
-  for (let o = Math.floor((lo + 180) / 360) * 360; o <= hi + 180; o += 360) out.push(o);
+  // one extra copy on each side: unwrapped rings may drift up to a full turn
+  for (let o = Math.floor((lo + 180) / 360) * 360 - 360; o <= hi + 540; o += 360) out.push(o);
   return out.length ? out : [0];
 }
 
@@ -246,17 +247,58 @@ function tracePoly(pts, off, close) {
     }
     return;
   }
-  let started = false, prevLon = null;
-  for (let i = 0; i < pts.length; i++) {
-    const lon = pts[i][0], lat = pts[i][1];
-    if (prevLon !== null && Math.abs(lon - prevLon) > 180) {
-      started = false;                      // dateline jump
+  if (close) return traceFlatFill(pts, off);
+  let started = false, prev = null;
+  for (let i = 0; i < pts.length; i++) {          // unwrap: no seam at the dateline
+    let lon = pts[i][0];
+    if (prev !== null) {
+      while (lon - prev > 180) lon -= 360;
+      while (lon - prev < -180) lon += 360;
     }
-    prevLon = lon;
-    const [x, y] = proj(lon + off, lat);
+    prev = lon;
+    const [x, y] = proj(lon + off, pts[i][1]);
     if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
   }
-  if (close) ctx.closePath();
+}
+
+/* closed ring on the flat map: longitudes are unwrapped so the outline never
+   jumps across the map at the dateline, and a ring that winds once around the
+   earth (polar band, Antarctica) is closed over the pole instead of leaking
+   into a full-width stripe */
+function traceFlatFill(pts, off) {
+  const n = pts.length;
+  if (!n) return;
+  const ring = [];
+  let prev = null, maxLat = -90, minLat = 90;
+  for (let i = 0; i < n; i++) {
+    let lon = pts[i][0];
+    const lat = pts[i][1];
+    if (prev !== null) {
+      while (lon - prev > 180) lon -= 360;
+      while (lon - prev < -180) lon += 360;
+    }
+    ring.push([lon, lat]);
+    prev = lon;
+    if (lat > maxLat) maxLat = lat;
+    if (lat < minLat) minLat = lat;
+  }
+  let lonClose = pts[0][0];                       // ring start, reached the long way round
+  while (lonClose - prev > 180) lonClose -= 360;
+  while (lonClose - prev < -180) lonClose += 360;
+  const wind = Math.round((lonClose - ring[0][0]) / 360);
+  let started = false;
+  for (const q of ring) {
+    const [x, y] = proj(q[0] + off, q[1]);
+    if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+  }
+  if (wind !== 0) {                               // close through the enclosed pole
+    const poleLat = (maxLat + minLat) > 0 ? 90 : -90;
+    const [x1] = proj(lonClose + off, ring[0][1]);
+    const [x0, yp] = proj(ring[0][0] + off, poleLat);
+    const [, y0] = proj(0, ring[0][1]);
+    ctx.lineTo(x1, y0); ctx.lineTo(x1, yp); ctx.lineTo(x0, yp);
+  }
+  ctx.closePath();
 }
 function anyVisible(pts) {
   if (state.view === 'flat') return true;
@@ -387,27 +429,9 @@ function drawBands() {
   }
 }
 function tracePolyBand(A, B, off) {
-  if (state.view !== 'flat') {               // globe: one ring, clipped at the horizon
-    traceGlobeFill(A.concat(B.slice().reverse()));
-    return;
-  }
-  // build closed sub-polygons, splitting on dateline jumps (flat view)
-  const segs = [];
-  let cur = [];
-  for (let i = 0; i < A.length; i++) {
-    if (state.view === 'flat' && i > 0 &&
-      (Math.abs(A[i][0] - A[i - 1][0]) > 180 || Math.abs(B[i][0] - B[i - 1][0]) > 180)) {
-      if (cur.length > 1) segs.push(cur); cur = [];
-    }
-    cur.push(i);
-  }
-  if (cur.length > 1) segs.push(cur);
-  for (const s of segs) {
-    let started = false;
-    for (const i of s) { const [x, y] = proj(A[i][0] + off, A[i][1]); started ? ctx.lineTo(x, y) : (ctx.moveTo(x, y), started = true); }
-    for (let j = s.length - 1; j >= 0; j--) { const i = s[j]; const [x, y] = proj(B[i][0] + off, B[i][1]); ctx.lineTo(x, y); }
-    ctx.closePath();
-  }
+  const ring = A.concat(B.slice().reverse());
+  if (state.view !== 'flat') traceGlobeFill(ring);   // globe: clipped at the horizon
+  else traceFlatFill(ring, off);                     // flat: unwrapped, pole-aware
 }
 function hexA(hex, a) {
   if (hex[0] !== '#') return hex.replace('hsl', 'hsla').replace(')', `,${a})`);
